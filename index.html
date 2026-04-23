@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hackthon Hackers — Multi-Site Playwright Test Automation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#0f1117;--surface:#161923;--surface2:#1e2230;--border:#2a2f3e;
+      --text:#e4e6ef;--text-dim:#9197a6;--accent:#6366f1;--accent-light:#818cf8;
+      --green:#34d399;--yellow:#fbbf24;--red:#f87171;--cyan:#22d3ee;
+      --sidebar-w:280px;--header-h:64px;
+      --font-sans:'Inter',system-ui,sans-serif;--font-mono:'JetBrains Mono',monospace;
+    }
+    html{scroll-behavior:smooth;scroll-padding-top:calc(var(--header-h) + 24px)}
+    body{font-family:var(--font-sans);background:var(--bg);color:var(--text);line-height:1.7;-webkit-font-smoothing:antialiased}
+
+    /* ── HEADER ── */
+    .header{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:rgba(15,17,23,.85);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;z-index:100;gap:16px}
+    .header-logo{font-size:1.15rem;font-weight:700;color:var(--accent-light);display:flex;align-items:center;gap:10px;white-space:nowrap}
+    .header-logo svg{width:28px;height:28px;flex-shrink:0}
+    .header-badge{font-size:.7rem;background:var(--accent);color:#fff;padding:2px 8px;border-radius:20px;font-weight:600}
+    .header-search{margin-left:auto;position:relative;max-width:320px;width:100%}
+    .header-search input{width:100%;padding:8px 14px 8px 36px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.85rem;outline:none;font-family:var(--font-sans);transition:border .2s}
+    .header-search input:focus{border-color:var(--accent)}
+    .header-search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--text-dim)}
+    .hamburger{display:none;background:none;border:none;color:var(--text);cursor:pointer;padding:4px}
+    .hamburger svg{width:24px;height:24px}
+
+    /* ── SIDEBAR ── */
+    .sidebar{position:fixed;top:var(--header-h);left:0;bottom:0;width:var(--sidebar-w);background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:20px 0;z-index:90;transition:transform .3s}
+    .sidebar::-webkit-scrollbar{width:4px}
+    .sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+    .sidebar-section{padding:0 20px;margin-bottom:6px}
+    .sidebar-section-title{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-dim);padding:12px 0 6px}
+    .sidebar a{display:flex;align-items:center;gap:8px;padding:7px 20px;font-size:.85rem;color:var(--text-dim);text-decoration:none;border-left:2px solid transparent;transition:all .15s}
+    .sidebar a:hover{color:var(--text);background:var(--surface2)}
+    .sidebar a.active{color:var(--accent-light);border-left-color:var(--accent);background:rgba(99,102,241,.08)}
+    .sidebar a svg{width:16px;height:16px;flex-shrink:0;opacity:.6}
+    .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:85}
+
+    /* ── MAIN ── */
+    .main{margin-left:var(--sidebar-w);padding-top:var(--header-h)}
+    .content{max-width:860px;margin:0 auto;padding:40px 32px 120px}
+
+    /* ── TYPOGRAPHY ── */
+    h1{font-size:2.5rem;font-weight:800;letter-spacing:-.03em;margin-bottom:12px;background:linear-gradient(135deg,var(--accent-light),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .subtitle{font-size:1.15rem;color:var(--text-dim);margin-bottom:40px;line-height:1.6}
+    h2{font-size:1.6rem;font-weight:700;margin:56px 0 16px;padding-bottom:10px;border-bottom:1px solid var(--border);letter-spacing:-.02em;scroll-margin-top:calc(var(--header-h) + 24px)}
+    h3{font-size:1.15rem;font-weight:600;margin:32px 0 12px;color:var(--accent-light);scroll-margin-top:calc(var(--header-h) + 24px)}
+    h4{font-size:.95rem;font-weight:600;margin:24px 0 8px}
+    p{margin-bottom:16px;color:var(--text-dim)}
+    strong{color:var(--text)}
+    a{color:var(--accent-light);text-decoration:none}
+    a:hover{text-decoration:underline}
+    ul,ol{margin:0 0 16px 24px;color:var(--text-dim)}
+    li{margin-bottom:6px}
+    li code{font-size:.82rem}
+    hr{border:none;border-top:1px solid var(--border);margin:40px 0}
+
+    /* ── CODE BLOCKS ── */
+    code{font-family:var(--font-mono);font-size:.84rem;background:var(--surface2);padding:2px 6px;border-radius:4px;color:var(--green)}
+    pre{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:0;margin:0 0 20px;overflow:hidden;position:relative}
+    pre .code-header{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:.75rem;color:var(--text-dim)}
+    pre .code-header .lang{font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+    pre .copy-btn{background:none;border:1px solid var(--border);color:var(--text-dim);padding:3px 10px;border-radius:5px;cursor:pointer;font-size:.72rem;font-family:var(--font-sans);transition:all .2s}
+    pre .copy-btn:hover{border-color:var(--accent);color:var(--accent-light)}
+    pre code{display:block;padding:16px 20px;background:transparent;overflow-x:auto;line-height:1.65;color:var(--text)}
+    pre code .kw{color:var(--accent-light)}
+    pre code .str{color:var(--green)}
+    pre code .cmt{color:var(--text-dim);font-style:italic}
+    pre code .fn{color:var(--cyan)}
+    pre code .num{color:var(--yellow)}
+    pre code .tag{color:var(--red)}
+
+    /* ── CARDS & FEATURES ── */
+    .feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin:24px 0}
+    .feature-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;transition:border-color .2s,transform .2s}
+    .feature-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+    .feature-card .icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;font-size:1.2rem}
+    .feature-card h4{margin:0 0 8px;font-size:.95rem;color:var(--text)}
+    .feature-card p{font-size:.85rem;margin:0;color:var(--text-dim);line-height:1.5}
+
+    /* ── STEP CARDS ── */
+    .steps{counter-reset:step;margin:24px 0}
+    .step{display:flex;gap:16px;margin-bottom:24px;align-items:flex-start}
+    .step-num{counter-increment:step;width:36px;height:36px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0}
+    .step-num::before{content:counter(step)}
+    .step-body{flex:1}
+    .step-body h4{margin:4px 0 6px;font-size:1rem}
+    .step-body p{font-size:.88rem;margin:0}
+
+    /* ── TABLE ── */
+    table{width:100%;border-collapse:collapse;margin:16px 0 24px;font-size:.88rem}
+    thead th{text-align:left;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);font-weight:600;color:var(--text);font-size:.8rem;text-transform:uppercase;letter-spacing:.04em}
+    tbody td{padding:10px 14px;border:1px solid var(--border);color:var(--text-dim);vertical-align:top}
+    tbody tr:hover{background:rgba(99,102,241,.04)}
+    tbody td code{font-size:.8rem}
+
+    /* ── CALLOUT ── */
+    .callout{border-radius:10px;padding:16px 20px;margin:20px 0;display:flex;gap:12px;align-items:flex-start;font-size:.9rem;line-height:1.6}
+    .callout svg{width:20px;height:20px;flex-shrink:0;margin-top:2px}
+    .callout-info{background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);color:var(--accent-light)}
+    .callout-warn{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);color:var(--yellow)}
+    .callout-success{background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.2);color:var(--green)}
+    .callout-tip{background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.2);color:var(--cyan)}
+
+    /* ── TABS ── */
+    .tabs{display:flex;gap:0;margin:20px 0 0;border-bottom:1px solid var(--border)}
+    .tab-btn{padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-dim);font-family:var(--font-sans);font-size:.85rem;cursor:pointer;transition:all .2s}
+    .tab-btn:hover{color:var(--text)}
+    .tab-btn.active{color:var(--accent-light);border-bottom-color:var(--accent)}
+    .tab-panel{display:none;padding-top:4px}
+    .tab-panel.active{display:block}
+
+    /* ── TREE ── */
+    .tree{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px 24px;margin:16px 0 24px;font-family:var(--font-mono);font-size:.82rem;line-height:1.8;color:var(--text-dim);overflow-x:auto;white-space:pre}
+    .tree .dir{color:var(--accent-light);font-weight:500}
+    .tree .file{color:var(--text-dim)}
+    .tree .hl{color:var(--green);font-weight:500}
+
+    /* ── BADGE ── */
+    .badge{display:inline-block;padding:2px 9px;border-radius:5px;font-size:.72rem;font-weight:600;letter-spacing:.03em}
+    .badge-high{background:rgba(248,113,113,.15);color:var(--red)}
+    .badge-medium{background:rgba(251,191,36,.15);color:var(--yellow)}
+    .badge-low{background:rgba(52,211,153,.15);color:var(--green)}
+
+    /* ── FLOW DIAGRAM ── */
+    .flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:20px 0;font-size:.85rem}
+    .flow-node{background:var(--surface);border:1px solid var(--border);padding:8px 16px;border-radius:8px;color:var(--text);font-weight:500;white-space:nowrap}
+    .flow-arrow{color:var(--accent);font-size:1.2rem}
+
+    /* ── TOC WITHIN PAGE ── */
+    .on-this-page{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin:24px 0}
+    .on-this-page h4{font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin:0 0 10px}
+    .on-this-page ul{list-style:none;margin:0;padding:0}
+    .on-this-page li{margin:0}
+    .on-this-page a{display:block;padding:5px 0;font-size:.88rem;color:var(--text-dim);border:none;transition:color .15s}
+    .on-this-page a:hover{color:var(--accent-light);text-decoration:none}
+
+    /* ── RESPONSIVE ── */
+    @media(max-width:900px){
+      .sidebar{transform:translateX(-100%)}
+      .sidebar.open{transform:translateX(0)}
+      .sidebar-overlay.open{display:block}
+      .main{margin-left:0}
+      .hamburger{display:block}
+      h1{font-size:1.8rem}
+    }
+    @media(max-width:600px){
+      .content{padding:24px 16px 80px}
+      .feature-grid{grid-template-columns:1fr}
+      .header-search{display:none}
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <button class="hamburger" onclick="toggleSidebar()" aria-label="Toggle menu">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+  </button>
+  <div class="header-logo">
+    <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#6366f1"/><path d="M10 22V10l6 6 6-6v12" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Hackthon Hackers
+    <span class="header-badge">v1.0</span>
+  </div>
+  <div class="header-search">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35" stroke-linecap="round" stroke-width="2"/></svg>
+    <input type="text" id="searchInput" placeholder="Search docs..." oninput="handleSearch(this.value)" />
+  </div>
+</header>
+
+<!-- SIDEBAR -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Getting Started</div>
+  </div>
+  <a href="#overview" class="active">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1"/></svg>
+    Overview
+  </a>
+  <a href="#installation">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V3"/></svg>
+    Installation
+  </a>
+  <a href="#quick-start">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+    Quick Start
+  </a>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Configuration</div>
+  </div>
+  <a href="#env-setup">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.573-1.066z"/><circle cx="12" cy="12" r="3"/></svg>
+    Environment Setup
+  </a>
+  <a href="#add-site">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+    Adding a New Site
+  </a>
+  <a href="#env-reference">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+    Env Reference
+  </a>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Writing Tests</div>
+  </div>
+  <a href="#test-structure">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+    Test Structure
+  </a>
+  <a href="#generic-tests">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+    Generic Tests
+  </a>
+  <a href="#custom-tests">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    Custom Site Tests
+  </a>
+  <a href="#tags">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5a1.99 1.99 0 011.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 12V7a4 4 0 014-4z"/></svg>
+    Tags & Priorities
+  </a>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Running Tests</div>
+  </div>
+  <a href="#commands">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+    Commands
+  </a>
+  <a href="#priority-runner">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+    Priority Runner
+  </a>
+  <a href="#playwright-direct">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    Direct Playwright
+  </a>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Results & Reports</div>
+  </div>
+  <a href="#output-structure">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7c-2 0-3 1-3 3z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v18M4 9h16"/></svg>
+    Output Structure
+  </a>
+  <a href="#json-output">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+    JSON Output
+  </a>
+  <a href="#report-viewer">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+    Report Viewer
+  </a>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Advanced</div>
+  </div>
+  <a href="#site-discovery">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+    Site Discovery
+  </a>
+  <a href="#ci-cd">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+    CI / CD
+  </a>
+  <a href="#architecture">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+    Architecture
+  </a>
+</nav>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+<div class="content">
+
+  <!-- ═══════════════════════════════════ OVERVIEW ═══════════════════════════════════ -->
+  <section id="overview">
+    <h1>Multi-Site Playwright Test Automation</h1>
+    <p class="subtitle">A dynamic, zero-config test framework. Add any website to <code>.env</code> &mdash; the framework auto-discovers it, runs tests, and generates organized results with screenshots and retry cURLs.</p>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="icon" style="background:rgba(99,102,241,.15)">&#x1F50D;</div>
+        <h4>Auto-Discovery</h4>
+        <p>Add <code>*_BASE_URL</code> to <code>.env</code> and the framework finds it. Zero code changes needed.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon" style="background:rgba(52,211,153,.15)">&#x1F3AF;</div>
+        <h4>Priority-Based</h4>
+        <p>Tag tests with <code>@priority:high|medium|low</code> and run them in order with the priority runner.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon" style="background:rgba(251,191,36,.15)">&#x1F4CA;</div>
+        <h4>Rich Reports</h4>
+        <p>JSON, HTML, and Excel reports. Per-site breakdown with screenshots, cURLs, and quality metrics.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon" style="background:rgba(34,211,238,.15)">&#x2699;&#xFE0F;</div>
+        <h4>Multi-Site</h4>
+        <p>Test unlimited websites simultaneously. Each gets its own project, auth, and result folders.</p>
+      </div>
+    </div>
+
+    <div class="flow">
+      <span class="flow-node">.env Config</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-node">Site Discovery</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-node">Project Generation</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-node">Test Execution</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-node">Organized Results</span>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════ INSTALLATION ═══════════════════════════════════ -->
+  <section id="installation">
+    <h2>Installation</h2>
+    <h3>Prerequisites</h3>
+    <ul>
+      <li><strong>Node.js</strong> &ge; 18 (recommended: v20+)</li>
+      <li><strong>npm</strong> (comes with Node.js)</li>
+      <li><strong>Google Chrome</strong> installed (Playwright uses the <code>chrome</code> channel)</li>
+    </ul>
+
+    <h3>Install the Framework</h3>
+    <pre><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><code>git clone &lt;your-repo-url&gt;
+cd hackthon-hackers
+npm install</code></pre>
+
+    <p>This installs Playwright, Express, ExcelJS, and all other dependencies defined in <code>package.json</code>.</p>
+
+    <div class="callout callout-info">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <div>Playwright ships its own Chromium browser, but this framework is configured to use your system Chrome via <code>channel: 'chrome'</code>. Make sure Chrome is installed.</div>
+    </div>
+
+    <h3>Install the Report Viewer (Optional)</h3>
+    <pre><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><code>cd report-viewer
+npm install</code></pre>
+  </section>
+
+  <!-- ═══════════════════════════════════ QUICK START ═══════════════════════════════════ -->
+  <section id="quick-start">
+    <h2>Quick Start</h2>
+    <p>Get up and running in 4 steps:</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h4>Install Dependencies</h4>
+          <p>Run <code>npm install</code> inside the <code>hackthon-hackers</code> directory.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h4>Configure Your Sites</h4>
+          <p>Copy the environment template and add your website credentials.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h4>Run Tests</h4>
+          <p>Execute <code>npm test</code> to run all tests against all configured sites.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h4>View Results</h4>
+          <p>Check <code>test-results/</code> for JSON reports, or start the Report Viewer dashboard.</p>
+        </div>
+      </div>
+    </div>
+
+    <pre><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><code><span class="cmt"># 1. Install dependencies</span>
+npm install
+
+<span class="cmt"># 2. Configure your .env</span>
+cp .env.example .env
+<span class="cmt"># Edit .env with your real credentials</span>
+
+<span class="cmt"># 3. Run all tests</span>
+npm test
+
+<span class="cmt"># 4. Run with priority orchestration</span>
+npm run test:priority</code></pre>
+  </section>
+
+  <!-- ═══════════════════════════════════ ENV SETUP ═══════════════════════════════════ -->
+  <section id="env-setup">
+    <h2>Environment Setup</h2>
+    <p>The framework reads all configuration from a <code>.env</code> file. Start from the provided template:</p>
+
+    <pre><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><code>cp .env.example .env</code></pre>
+
+    <h3>Example .env File</h3>
+    <pre><div class="code-header"><span class="lang">env</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><code><span class="cmt"># ─── Site 1: Blockpeer ────────────────────────</span>
+BLOCKPEER_BASE_URL=https://staging-react.blockpeer.finance
+BLOCKPEER_EMAIL=your-email@example.com
+BLOCKPEER_PASSWORD=your-password
+
+<span class="cmt"># ─── Site 2: Crickbox ─────────────────────────</span>
+CRICKBOX_BASE_URL=https://crick-box07.vercel.app
+CRICKBOX_EMAIL=your-email@example.com
+CRICKBOX_PASSWORD=your-password
+
+<span class="cmt"># ─── Optional: Adding a third site ────────────</span>
+<span class="cmt"># SPEAKSPORT_BASE_URL=https://staging.speaksport.ai</span>
+<span class="cmt"># SPEAKSPORT_EMAIL=your-email@example.com</span>
+<span class="cmt"># SPEAKSPORT_PASSWORD=your-password</span>
+<span class="cmt"># SPEAKSPORT_AUTH_ROUTE=/auth/login</span>
+
+<span class="cmt"># ─── Fallback credentials (used when site-specific ones are missing)</span>
+TEST_EMAIL=
+TEST_PASSWORD=</code></pre>
+
+    <div class="callout callout-warn">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <div><strong>Never commit your <code>.env</code> file.</strong> It contains real credentials. The <code>.gitignore</code> already excludes it.</div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════ ADD SITE ═══════════════════════════════════ -->
+  <section id="add-site">
+    <h2>Adding a New Site</h2>
+    <p><strong>Zero code changes required.</strong> Just add 3 lines to your <code>.env</code>:</p>
+
+    <pre><div class="code-header"><span class="lang">env</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><code>MYNEWSITE_BASE_URL=https://staging.mynewsite.com
+MYNEWSITE_EMAIL=qa@mynewsite.com
+MYNEWSITE_PASSWORD=secret123</code></pre>
+
+    <p>Optionally customize the login route (defaults to <code>/auth/signin</code>):</p>
+    <pre><div class="code-header"><span class="lang">env</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><code>MYNEWSITE_AUTH_ROUTE=/login</code></pre>
+
+    <h3>What Happens Automatically</h3>
+    <p>The framework will:</p>
+    <ul>
+      <li>Discover the site from <code>MYNEWSITE_BASE_URL</code></li>
+      <li>Create Playwright projects: <code>mynewsite-setup</code>, <code>mynewsite-public</code></li>
+      <li>Run generic smoke tests against it</li>
+      <li>Use generic auth setup to log in</li>
+      <li>Generate results in <code>test-results/&lt;run&gt;/mynewsite/</code></li>
+      <li>Create <code>passed.json</code>, <code>failed.json</code>, <code>full_result.json</code></li>
+      <li>Organize screenshots in <code>mynewsite/screenshots/</code></li>
+    </ul>
+
+    <h3>Naming Convention</h3>
+    <table>
+      <thead><tr><th>Env Variable</th><th>Purpose</th><th>Required</th></tr></thead>
+      <tbody>
+        <tr><td><code>&lt;NAME&gt;_BASE_URL</code></td><td>Site URL (triggers discovery)</td><td>Yes</td></tr>
+        <tr><td><code>&lt;NAME&gt;_EMAIL</code></td><td>Login email</td><td>No (falls back to <code>TEST_EMAIL</code>)</td></tr>
+        <tr><td><code>&lt;NAME&gt;_PASSWORD</code></td><td>Login password</td><td>No (falls back to <code>TEST_PASSWORD</code>)</td></tr>
+        <tr><td><code>&lt;NAME&gt;_AUTH_ROUTE</code></td><td>Login page path</td><td>No (default: <code>/auth/signin</code>)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════════════════════════════ ENV REFERENCE ═══════════════════════════════════ -->
+  <section id="env-reference">
+    <h2>Environment Variables Reference</h2>
+    <table>
+      <thead><tr><th>Variable</th><th>Description</th><th>Default</th></tr></thead>
+      <tbody>
+        <tr><td><code>&lt;NAME&gt;_BASE_URL</code></td><td>Site URL (triggers auto-discovery)</td><td>&mdash;</td></tr>
+        <tr><td><code>&lt;NAME&gt;_EMAIL</code></td><td>Site login email</td><td><code>TEST_EMAIL</code></td></tr>
+        <tr><td><code>&lt;NAME&gt;_PASSWORD</code></td><td>Site login password</td><td><code>TEST_PASSWORD</code></td></tr>
+        <tr><td><code>&lt;NAME&gt;_AUTH_ROUTE</code></td><td>Login page route</td><td><code>/auth/signin</code></td></tr>
+        <tr><td><code>TEST_EMAIL</code></td><td>Fallback email for all sites</td><td>&mdash;</td></tr>
+        <tr><td><code>TEST_PASSWORD</code></td><td>Fallback password for all sites</td><td>&mdash;</td></tr>
+        <tr><td><code>TEST_RUN_ID</code></td><td>Custom run ID for results folder</td><td>Auto-generated</td></tr>
+        <tr><td><code>SKIP_AUTH_SETUP</code></td><td>Skip auth when <code>true</code></td><td><code>false</code></td></tr>
+        <tr><td><code>SITES</code></td><td>Comma-separated site filter</td><td>All discovered</td></tr>
+        <tr><td><code>PRIORITY_ORDER</code></td><td>Comma-separated priority order</td><td><code>high,medium,low</code></td></tr>
+        <tr><td><code>CONTINUE_ON_FAILURE</code></td><td>Don't stop on first failure</td><td><code>false</code></td></tr>
+        <tr><td><code>CI</code></td><td>CI mode (fail fast, forbid <code>.only</code>)</td><td>&mdash;</td></tr>
+        <tr><td><code>AUTHORIZATION_HEADER</code></td><td>Bearer token for API requests</td><td>&mdash;</td></tr>
+        <tr><td><code>API_PORT</code></td><td>Express report server port</td><td><code>4000</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════════════════════════════ TEST STRUCTURE ═══════════════════════════════════ -->
+  <section id="test-structure">
+    <h2>Test Structure</h2>
+    <p>Tests are organized by site, priority, and auth requirement:</p>
+
+    <div class="tree"><span class="dir">tests/</span>
+  <span class="dir">_generic/</span>                 <span class="cmt"># Runs against ALL discovered sites</span>
+    <span class="hl">smoke.spec.ts</span>            <span class="cmt"># Page load, title, JS errors, a11y</span>
+    <span class="file">auth.setup.ts</span>            <span class="cmt"># Generic login for any site</span>
+  <span class="dir">blockpeer/</span>                <span class="cmt"># Site-specific tests</span>
+    <span class="file">auth.setup.ts</span>            <span class="cmt"># Custom auth (overrides generic)</span>
+    <span class="dir">priority-high/</span>
+      <span class="dir">public/</span>
+        <span class="hl">auth-critical.spec.ts</span>
+      <span class="dir">authenticated/</span>
+        <span class="hl">dashboard-critical.spec.ts</span>
+    <span class="dir">priority-medium/</span>
+      <span class="dir">public/</span>
+        <span class="hl">auth-journeys.spec.ts</span>
+      <span class="dir">authenticated/</span>
+        <span class="hl">business-modules.spec.ts</span>
+    <span class="dir">priority-low/</span>
+      <span class="dir">public/</span>
+        <span class="hl">legal-and-edge.spec.ts</span>
+  <span class="dir">crickbox/</span>                 <span class="cmt"># Another site</span>
+    <span class="file">auth.setup.ts</span>
+    <span class="hl">crickbox.spec.ts</span>
+    <span class="dir">authenticated/</span>
+      <span class="hl">app-authenticated.spec.ts</span></div>
+
+    <div class="callout callout-tip">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+      <div><strong>Tip:</strong> Tests in <code>_generic/</code> run for every site. Tests in site-specific folders (like <code>blockpeer/</code>) only run for that site.</div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════ GENERIC TESTS ═══════════════════════════════════ -->
+  <section id="generic-tests">
+    <h2>Generic Tests (Smoke Tests)</h2>
+    <p>These tests run automatically against every discovered site. They validate basic health:</p>
+
+    <pre><div class="code-header"><span class="lang">TypeScript</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><code><span class="kw">import</span> { test, expect } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+
+test.describe(<span class="str">'Smoke tests @api:core @priority:high'</span>, () => {
+  test(<span class="str">'home page loads with HTTP 200'</span>, <span class="kw">async</span> ({ page, baseURL }) => {
+    <span class="kw">const</span> response = <span class="kw">await</span> page.<span class="fn">goto</span>(baseURL || <span class="str">'/'</span>);
+    <span class="fn">expect</span>(response?.<span class="fn">ok</span>()).<span class="fn">toBeTruthy</span>();
+  });
+
+  test(<span class="str">'page has a non-empty title'</span>, <span class="kw">async</span> ({ page, baseURL }) => {
+    <span class="kw">await</span> page.<span class="fn">goto</span>(baseURL || <span class="str">'/'</span>);
+    <span class="kw">const</span> title = <span class="kw">await</span> page.<span class="fn">title</span>();
+    <span class="fn">expect</span>(title.length).<span class="fn">toBeGreaterThan</span>(<span class="num">0</span>);
+  });
+
+  test(<span class="str">'no uncaught JS errors on load'</span>, <span class="kw">async</span> ({ page, baseURL }) => {
+    <span class="kw">const</span> errors: string[] = [];
+    page.<span class="fn">on</span>(<span class="str">'pageerror'</span>, (err) => errors.<span class="fn">push</span>(err.message));
+    <span class="kw">await</span> page.<span class="fn">goto</span>(baseURL || <span class="str">'/'</span>);
+    <span class="kw">await</span> page.<span class="fn">waitForLoadState</span>(<span class="str">'domcontentloaded'</span>);
+    <span class="fn">expect</span>(errors).<span class="fn">toEqual</span>([]);
+  });
+});</code></pre>
+
+    <h3>What the Smoke Tests Check</h3>
+    <table>
+      <thead><tr><th>Test</th><th>Priority</th><th>What It Validates</th></tr></thead>
+      <tbody>
+        <tr><td>HTTP 200</td><td><span class="badge badge-high">HIGH</span></td><td>Home page returns a successful response</td></tr>
+        <tr><td>Non-empty title</td><td><span class="badge badge-high">HIGH</span></td><td>Page has a <code>&lt;title&gt;</code> tag with content</td></tr>
+        <tr><td>Body renders</td><td><span class="badge badge-high">HIGH</span></td><td><code>&lt;body&gt;</code> element is visible (no crash)</td></tr>
+        <tr><td>No JS errors</td><td><span class="badge badge-high">HIGH</span></td><td>No uncaught JavaScript exceptions on load</td></tr>
+        <tr><td>Has links</td><td><span class="badge badge-medium">MEDIUM</span></td><td>At least one <code>&lt;a&gt;</code> tag exists</td></tr>
+        <tr><td>Interactive elements</td><td><span class="badge badge-medium">MEDIUM</span></td><td>Buttons, inputs, or selects are present</td></tr>
+        <tr><td>Lang attribute</td><td><span class="badge badge-low">LOW</span></td><td><code>&lt;html lang="..."&gt;</code> is set (a11y)</td></tr>
+        <tr><td>Image alt text</td><td><span class="badge badge-low">LOW</span></td><td>All <code>&lt;img&gt;</code> tags have <code>alt</code> attributes</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════════════════════════════ CUSTOM TESTS ═══════════════════════════════════ -->
+  <section id="custom-tests">
+    <h2>Writing Custom Site Tests</h2>
+    <p>To add tests specific to a site, create a folder matching its lowercase name under <code>tests/</code>:</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h4>Create the site folder</h4>
+          <p>Create <code>tests/mynewsite/</code> matching the prefix you used in <code>.env</code>.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h4>Add an auth setup (optional)</h4>
+          <p>Create <code>tests/mynewsite/auth.setup.ts</code> if the site needs custom login logic. Otherwise, the generic auth is used.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h4>Organize by priority &amp; auth</h4>
+          <p>Place specs in <code>priority-high/public/</code>, <code>priority-medium/authenticated/</code>, etc.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h4>Tag your tests</h4>
+          <p>Use <code>@api:&lt;name&gt;</code> and <code>@priority:&lt;level&gt;</code> tags in <code>test.describe</code>.</p>
+        </div>
+      </div>
+    </div>
+
+    <h3>Example Custom Test</h3>
+    <pre><div class="code-header"><span class="lang">TypeScript</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><code><span class="kw">import</span> { test, expect } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+
+<span class="kw">const</span> BASE_URL = process.env.MYNEWSITE_BASE_URL!;
+
+test.describe(<span class="str">'Landing Page @api:landing @priority:high'</span>, () => {
+  test(<span class="str">'hero section is visible'</span>, <span class="kw">async</span> ({ page }) => {
+    <span class="kw">await</span> page.<span class="fn">goto</span>(<span class="str">`${BASE_URL}/`</span>);
+    <span class="kw">await</span> <span class="fn">expect</span>(page.<span class="fn">locator</span>(<span class="str">'h1'</span>)).<span class="fn">toBeVisible</span>();
+  });
+
+  test(<span class="str">'CTA button works'</span>, <span class="kw">async</span> ({ page }) => {
+    <span class="kw">await</span> page.<span class="fn">goto</span>(<span class="str">`${BASE_URL}/`</span>);
+    <span class="kw">await</span> page.<span class="fn">click</span>(<span class="str">'[data-testid="cta-button"]'</span>);
+    <span class="kw">await</span> <span class="fn">expect</span>(page).<span class="fn">toHaveURL</span>(<span class="str">/signup/</span>);
+  });
+});</code></pre>
+
+    <div class="callout callout-success">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <div>Once you create <code>tests/mynewsite/</code>, the config auto-detects it and uses your custom auth &amp; test files.</div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════ TAGS ═══════════════════════════════════ -->
+  <section id="tags">
+    <h2>Tags &amp; Priorities</h2>
+    <p>The framework uses inline tags in <code>test.describe()</code> titles to organize and filter tests:</p>
+
+    <h3>API Tags</h3>
+    <p>Format: <code>@api:&lt;name&gt;</code> &mdash; groups tests by feature area.</p>
+    <pre><div class="code-header"><span class="lang">TypeScript</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><code>test.describe(<span class="str">'Login Flow @api:auth @priority:high'</span>, () => {
+  <span class="cmt">// Tests here are grouped under "auth" API</span>
+});
+
+test.describe(<span class="str">'User Dashboard @api:dashboard @priority:medium'</span>, () => {
+  <span class="cmt">// Tests here are grouped under "dashboard" API</span>
+});</code></pre>
+
+    <h3>Priority Levels</h3>
+    <table>
+      <thead><tr><th>Tag</th><th>Level</th><th>When to Use</th></tr></thead>
+      <tbody>
+        <tr><td><code>@priority:high</code></td><td><span class="badge badge-high">HIGH</span></td><td>Critical paths &mdash; login, core features, payment flows</td></tr>
+        <tr><td><code>@priority:medium</code></td><td><span class="badge badge-medium">MEDIUM</span></td><td>Important features &mdash; forms, navigation, user journeys</td></tr>
+        <tr><td><code>@priority:low</code></td><td><span class="badge badge-low">LOW</span></td><td>Edge cases &mdash; legal pages, accessibility, error states</td></tr>
+      </tbody>
+    </table>
+
+    <p>The priority runner uses these tags to execute tests in order: high &rarr; medium &rarr; low.</p>
+  </section>
+
+  <!-- ═══════════════════════════════════ COMMANDS ═══════════════════════════════════ -->
+  <section id="commands">
+    <h2>Commands</h2>
+
+    <h3>Basic Commands</h3>
+    <table>
+      <thead><tr><th>Command</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><code>npm test</code></td><td>Run all tests for all sites</td></tr>
+        <tr><td><code>npm run test:priority</code></td><td>Run tests ordered by priority (high &rarr; medium &rarr; low)</td></tr>
+        <tr><td><code>npm run test:priority:public</code></td><td>Run only public tests (skip auth)</td></tr>
+        <tr><td><code>npm run clean:results</code></td><td>Delete all test results</td></tr>
+        <tr><td><code>npm run test:report</code></td><td>Generate Excel report from latest run</td></tr>
+        <tr><td><code>npm run test:show</code></td><td>Open HTML report in browser</td></tr>
+        <tr><td><code>npm run server</code></td><td>Start the report API server (port 4000)</td></tr>
+        <tr><td><code>npm run server:dev</code></td><td>Start report API with hot-reload</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Site-Specific Commands</h3>
+    <table>
+      <thead><tr><th>Command</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><code>npm run test:priority:blockpeer</code></td><td>Run all Blockpeer tests</td></tr>
+        <tr><td><code>npm run test:priority:blockpeer:high</code></td><td>Run only high-priority Blockpeer tests</td></tr>
+        <tr><td><code>npm run test:priority:blockpeer:medium</code></td><td>Run only medium-priority Blockpeer tests</td></tr>
+        <tr><td><code>npm run test:priority:blockpeer:low</code></td><td>Run only low-priority Blockpeer tests</td></tr>
+        <tr><td><code>npm run test:priority:crickbox</code></td><td>Run all Crickbox tests</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════════════════════════════ PRIORITY RUNNER ═══════════════════════════════════ -->
+  <section id="priority-runner">
+    <h2>Priority Runner</h2>
+    <p>The priority runner (<code>scripts/run-priority-tests.mjs</code>) orchestrates test execution by priority level:</p>
+
+    <div class="flow">
+      <span class="flow-node" style="border-color:var(--red)"><span class="badge badge-high">HIGH</span> Tests</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-node" style="border-color:var(--yellow)"><span class="badge badge-medium">MEDIUM</span> Tests</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-node" style="border-color:var(--green)"><span class="badge badge-low">LOW</span> Tests</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-node">Excel Report</span>
+    </div>
+
+    <h3>CLI Options</h3>
+    <pre><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><code><span class="cmt"># All sites, all priorities</span>
+npm run test:priority
+
+<span class="cmt"># Specific site</span>
+npm run test:priority -- --sites=blockpeer
+
+<span class="cmt"># Specific priority</span>
+npm run test:priority -- --priorities=high
+
+<span class="cmt"># Multiple sites</span>
+npm run test:priority -- --sites=blockpeer,crickbox
+
+<span class="cmt"># Continue even if a priority level fails</span>
+npm run test:priority -- --continue-on-failure
+
+<span class="cmt"># Skip auth setup (public tests only)</span>
+npm run test:priority -- --skip-auth
+
+<span class="cmt"># Custom run ID</span>
+npm run test:priority -- --run-id=my-custom-run</code></pre>
+  </section>
+
+  <!-- ═══════════════════════════════════ PLAYWRIGHT DIRECT ═══════════════════════════════════ -->
+  <section id="playwright-direct">
+    <h2>Direct Playwright Commands</h2>
+    <p>You can also use Playwright CLI directly for more control:</p>
+
+    <pre><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><code><span class="cmt"># Run specific project</span>
+npx playwright test --project blockpeer-public
+
+<span class="cmt"># Run with grep filter</span>
+npx playwright test --grep <span class="str">"@priority:high"</span>
+
+<span class="cmt"># Run headed (see the browser)</span>
+npx playwright test --project blockpeer-public --headed
+
+<span class="cmt"># Run specific test file</span>
+npx playwright test tests/blockpeer/priority-high/public/auth-critical.spec.ts
+
+<span class="cmt"># Debug mode (step through)</span>
+npx playwright test --debug
+
+<span class="cmt"># Generate code with codegen</span>
+npx playwright codegen https://staging.mysite.com</code></pre>
+  </section>
+
+  <!-- ═══════════════════════════════════ OUTPUT STRUCTURE ═══════════════════════════════════ -->
+  <section id="output-structure">
+    <h2>Output Structure</h2>
+    <p>After a test run, results are organized per website in <code>test-results/</code>:</p>
+
+    <div class="tree"><span class="dir">test-results/&lt;run-id&gt;/</span>
+  <span class="dir">blockpeer/</span>
+    <span class="hl">passed.json</span>               <span class="cmt"># All passed tests</span>
+    <span class="hl">failed.json</span>               <span class="cmt"># All failed tests (with screenshots + cURL)</span>
+    <span class="hl">full_result.json</span>          <span class="cmt"># Every test result</span>
+    <span class="dir">screenshots/</span>              <span class="cmt"># Screenshots per website</span>
+      <span class="file">signin-page-title-1713600000.png</span>
+    <span class="dir">auth/</span>
+      <span class="dir">priority-high/</span>
+        <span class="dir">passed/</span>               <span class="cmt"># Individual test JSONs</span>
+        <span class="dir">failed/</span>
+    <span class="dir">navigation/</span>
+      <span class="dir">priority-medium/</span>
+        <span class="dir">passed/</span>
+  <span class="dir">crickbox/</span>
+    <span class="hl">passed.json</span>
+    <span class="hl">failed.json</span>
+    <span class="hl">full_result.json</span>
+    <span class="dir">screenshots/</span>
+  <span class="dir">summary/</span>
+    <span class="hl">final-test-report.xlsx</span>   <span class="cmt"># Excel with Summary + Details + Failed sheets</span>
+  <span class="file">results.json</span>               <span class="cmt"># Standard Playwright JSON report</span>
+  <span class="dir">html-report/</span>              <span class="cmt"># Playwright HTML report</span></div>
+  </section>
+
+  <!-- ═══════════════════════════════════ JSON OUTPUT ═══════════════════════════════════ -->
+  <section id="json-output">
+    <h2>JSON Output Format</h2>
+    <p>Each test generates a JSON payload. Failed tests include screenshots and retry cURLs:</p>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab(event, 'tab-failed')">Failed Test</button>
+      <button class="tab-btn" onclick="switchTab(event, 'tab-passed')">Passed Test</button>
+    </div>
+    <div id="tab-failed" class="tab-panel active">
+      <pre><div class="code-header"><span class="lang">JSON</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><code>{
+  <span class="str">"title"</span>: <span class="str">"signin heading is visible"</span>,
+  <span class="str">"fullTitle"</span>: <span class="str">"Blockpeer Login Critical @api:auth @priority:high signin heading is visible"</span>,
+  <span class="str">"apiName"</span>: <span class="str">"auth"</span>,
+  <span class="str">"priority"</span>: <span class="str">"high"</span>,
+  <span class="str">"status"</span>: <span class="str">"failed"</span>,
+  <span class="str">"outcome"</span>: <span class="str">"failed"</span>,
+  <span class="str">"durationMs"</span>: <span class="num">5230</span>,
+  <span class="str">"websiteName"</span>: <span class="str">"blockpeer"</span>,
+  <span class="str">"error"</span>: <span class="str">"Expected element to be visible"</span>,
+  <span class="str">"screenshotPaths"</span>: [<span class="str">"test-results/.../blockpeer/screenshots/signin-heading.png"</span>],
+  <span class="str">"retryCurl"</span>: <span class="str">"curl -s -o /dev/null -w \"%{http_code}\" -X GET \"https://staging.blockpeer.finance/auth/signin\""</span>
+}</code></pre>
+    </div>
+    <div id="tab-passed" class="tab-panel">
+      <pre><div class="code-header"><span class="lang">JSON</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><code>{
+  <span class="str">"title"</span>: <span class="str">"home page loads with HTTP 200"</span>,
+  <span class="str">"fullTitle"</span>: <span class="str">"Smoke tests @api:core @priority:high home page loads with HTTP 200"</span>,
+  <span class="str">"apiName"</span>: <span class="str">"core"</span>,
+  <span class="str">"priority"</span>: <span class="str">"high"</span>,
+  <span class="str">"status"</span>: <span class="str">"passed"</span>,
+  <span class="str">"outcome"</span>: <span class="str">"passed"</span>,
+  <span class="str">"durationMs"</span>: <span class="num">1240</span>,
+  <span class="str">"websiteName"</span>: <span class="str">"blockpeer"</span>
+}</code></pre>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════ REPORT VIEWER ═══════════════════════════════════ -->
+  <section id="report-viewer">
+    <h2>Report Viewer (Dashboard)</h2>
+    <p>A Next.js dashboard for browsing test results visually. Built with React 19, Next.js 16, and Tailwind CSS.</p>
+
+    <h3>Setup</h3>
+    <pre><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><code><span class="cmt"># Navigate to the viewer</span>
+cd report-viewer
+
+<span class="cmt"># Install dependencies</span>
+npm install
+
+<span class="cmt"># Start development server</span>
+npm run dev
+<span class="cmt"># Open http://localhost:3000</span></code></pre>
+
+    <h3>Configuration</h3>
+    <p>The viewer can read results from two sources:</p>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab(event, 'tab-filesystem')">Filesystem (Default)</button>
+      <button class="tab-btn" onclick="switchTab(event, 'tab-api')">API Server</button>
+    </div>
+    <div id="tab-filesystem" class="tab-panel active">
+      <p>By default, the viewer reads from <code>../test-results</code> relative to its directory. Just ensure the test framework and viewer sit side-by-side:</p>
+      <div class="tree"><span class="dir">hackthon/</span>
+  <span class="dir">hackthon-hackers/</span>       <span class="cmt"># Framework + test-results/</span>
+  <span class="dir">report-viewer/</span>           <span class="cmt"># Reads from ../test-results</span></div>
+    </div>
+    <div id="tab-api" class="tab-panel">
+      <p>To use the Express report API, set <code>API_URL</code> in <code>.env.local</code>:</p>
+      <pre><div class="code-header"><span class="lang">env</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><code><span class="cmt"># report-viewer/.env.local</span>
+API_URL=http://localhost:4000</code></pre>
+      <p>Then start the API server in the framework folder:</p>
+      <pre><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><code><span class="cmt"># In hackthon-hackers/</span>
+npm run server</code></pre>
+    </div>
+
+    <h3>Dashboard Features</h3>
+    <ul>
+      <li>Run selector &mdash; browse multiple test runs</li>
+      <li>Per-site stats &mdash; pass rates, durations, test counts</li>
+      <li>Passed/Failed/Full result views with filtering</li>
+      <li>Quality metrics dashboard</li>
+      <li>JSON viewer for raw data inspection</li>
+    </ul>
+  </section>
+
+  <!-- ═══════════════════════════════════ SITE DISCOVERY ═══════════════════════════════════ -->
+  <section id="site-discovery">
+    <h2>How Site Discovery Works</h2>
+    <p>The core magic of this framework. No config files to edit &mdash; just environment variables.</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h4>Scan Environment</h4>
+          <p><code>utils/siteDiscovery.ts</code> scans all <code>process.env</code> variables on startup.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h4>Match Pattern</h4>
+          <p>Any variable ending in <code>_BASE_URL</code> is treated as a site definition.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h4>Extract Name</h4>
+          <p>The prefix becomes the site name (e.g., <code>BLOCKPEER_BASE_URL</code> &rarr; <code>blockpeer</code>).</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h4>Check for Custom Tests</h4>
+          <p>Checks if <code>tests/&lt;sitename&gt;/</code> exists for custom tests and <code>auth.setup.ts</code> for custom auth.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h4>Generate Projects</h4>
+          <p><code>playwright.config.ts</code> generates 2&ndash;3 Playwright projects per site: <code>setup</code>, <code>public</code>, and optionally <code>authenticated</code>.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h4>Execute &amp; Report</h4>
+          <p>The reporter organizes all output by website name with per-site JSON aggregation.</p>
+        </div>
+      </div>
+    </div>
+
+    <pre><div class="code-header"><span class="lang">TypeScript &mdash; utils/siteDiscovery.ts</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><code><span class="kw">export function</span> <span class="fn">discoverSites</span>(
+  env: Record&lt;string, string | undefined&gt; = process.env
+): SiteConfig[] {
+  <span class="kw">const</span> sites: SiteConfig[] = [];
+
+  <span class="kw">for</span> (<span class="kw">const</span> key <span class="kw">of</span> Object.<span class="fn">keys</span>(env)) {
+    <span class="kw">if</span> (!key.<span class="fn">endsWith</span>(<span class="str">'_BASE_URL'</span>)) <span class="kw">continue</span>;
+
+    <span class="kw">const</span> prefix = key.<span class="fn">slice</span>(<span class="num">0</span>, -<span class="str">'_BASE_URL'</span>.length);
+    <span class="kw">const</span> name = prefix.<span class="fn">toLowerCase</span>();
+
+    sites.<span class="fn">push</span>({
+      name,
+      baseURL: env[key],
+      email:    env[<span class="str">`${prefix}_EMAIL`</span>]    || env.TEST_EMAIL,
+      password: env[<span class="str">`${prefix}_PASSWORD`</span>] || env.TEST_PASSWORD,
+      authRoute: env[<span class="str">`${prefix}_AUTH_ROUTE`</span>] || <span class="str">'/auth/signin'</span>,
+      hasCustomTests: fs.<span class="fn">existsSync</span>(<span class="str">`tests/${name}`</span>),
+      hasCustomAuth:  fs.<span class="fn">existsSync</span>(<span class="str">`tests/${name}/auth.setup.ts`</span>),
+    });
+  }
+
+  <span class="kw">return</span> sites;
+}</code></pre>
+  </section>
+
+  <!-- ═══════════════════════════════════ CI/CD ═══════════════════════════════════ -->
+  <section id="ci-cd">
+    <h2>CI / CD Integration</h2>
+    <p>The framework includes a GitHub Actions workflow that runs on push/PR to <code>main</code>:</p>
+
+    <pre><div class="code-header"><span class="lang">YAML &mdash; .github/workflows/ci.yml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><code><span class="kw">name:</span> CI
+
+<span class="kw">on:</span>
+  <span class="kw">push:</span>
+    branches: [ main ]
+  <span class="kw">pull_request:</span>
+    branches: [ main ]
+
+<span class="kw">jobs:</span>
+  <span class="kw">test:</span>
+    <span class="kw">strategy:</span>
+      fail-fast: <span class="num">false</span>
+      <span class="kw">matrix:</span>
+        os: [ubuntu-latest, macos-15, windows-latest]
+    runs-on: ${{ matrix.os }}
+    <span class="kw">steps:</span>
+    - uses: actions/checkout@v4
+    - name: Use Node.js <span class="num">20</span>
+      uses: actions/setup-node@v4
+      with:
+        node-version: <span class="str">'20'</span>
+        cache: <span class="str">'npm'</span>
+    - name: Install dependencies
+      run: npm ci
+    - name: Run tests
+      run: npm run test
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-${{ matrix.os }}
+        path: test-results/
+        retention-days: <span class="num">30</span></code></pre>
+
+    <h3>CI Features</h3>
+    <ul>
+      <li><strong>Multi-OS matrix</strong> &mdash; tests on Ubuntu, macOS, and Windows</li>
+      <li><strong>Coverage verification</strong> &mdash; checks that all <code>coverage</code>-tagged tests pass</li>
+      <li><strong>Artifact upload</strong> &mdash; test results are saved as build artifacts for 30 days</li>
+      <li><strong>Fail-fast disabled</strong> &mdash; all OS jobs run even if one fails</li>
+    </ul>
+
+    <div class="callout callout-tip">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+      <div><strong>Tip:</strong> Set your site credentials as GitHub Secrets and reference them in the workflow to run real E2E tests in CI.</div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════ ARCHITECTURE ═══════════════════════════════════ -->
+  <section id="architecture">
+    <h2>Architecture</h2>
+    <p>How all the pieces fit together:</p>
+
+    <div class="tree"><span class="dir">hackthon-hackers/</span>
+  <span class="hl">.env</span>                            <span class="cmt"># Site credentials (git-ignored)</span>
+  <span class="hl">.env.example</span>                     <span class="cmt"># Template</span>
+  <span class="hl">playwright.config.ts</span>             <span class="cmt"># Dynamic config (generates projects from .env)</span>
+  <span class="hl">global.setup.ts</span>                  <span class="cmt"># Validates env vars on startup</span>
+  <span class="dir">utils/</span>
+    <span class="file">siteDiscovery.ts</span>             <span class="cmt"># Scans *_BASE_URL env vars</span>
+    <span class="file">testResultManager.ts</span>         <span class="cmt"># Folder creation + JSON writing</span>
+  <span class="dir">reporters/</span>
+    <span class="file">priorityResultReporter.ts</span>    <span class="cmt"># Custom reporter: 3 JSONs + screenshots</span>
+  <span class="dir">scripts/</span>
+    <span class="file">run-priority-tests.mjs</span>       <span class="cmt"># Orchestrator: runs by site + priority</span>
+    <span class="file">export-test-report.mjs</span>       <span class="cmt"># Generates Excel report</span>
+    <span class="file">clean-test-results.mjs</span>       <span class="cmt"># Wipes test-results/</span>
+  <span class="dir">server/</span>
+    <span class="file">index.ts</span>                     <span class="cmt"># Express report API (port 4000)</span>
+    <span class="file">reportService.ts</span>             <span class="cmt"># Data layer for report API</span>
+  <span class="dir">tests/</span>
+    <span class="dir">_generic/</span>                    <span class="cmt"># Runs against ALL sites</span>
+    <span class="dir">blockpeer/</span>                   <span class="cmt"># Site-specific tests</span>
+    <span class="dir">crickbox/</span>                    <span class="cmt"># Another site</span>
+
+<span class="dir">report-viewer/</span>                    <span class="cmt"># Next.js dashboard (separate project)</span>
+  <span class="dir">app/</span>                             <span class="cmt"># Pages + API routes</span>
+  <span class="dir">components/</span>                      <span class="cmt"># UI components</span>
+  <span class="dir">lib/</span>                             <span class="cmt"># Report reader + types</span></div>
+
+    <h3>Key Design Decisions</h3>
+    <ul>
+      <li><strong>Convention over configuration</strong> &mdash; Env var naming drives everything. No YAML, no JSON config files for sites.</li>
+      <li><strong>Generic + specific</strong> &mdash; Smoke tests run everywhere; custom tests extend specific sites.</li>
+      <li><strong>Custom reporter</strong> &mdash; The <code>PriorityResultReporter</code> produces organized per-site JSON during test execution.</li>
+      <li><strong>Decoupled viewer</strong> &mdash; The report dashboard is a standalone Next.js app that can read filesystem or API.</li>
+    </ul>
+  </section>
+
+  <!-- ═══════════════════════════════════ FOOTER ═══════════════════════════════════ -->
+  <hr />
+  <div style="text-align:center;padding:32px 0;color:var(--text-dim);font-size:.85rem">
+    <p style="margin-bottom:8px">Built with Playwright &bull; Next.js &bull; Express</p>
+    <p style="margin:0;font-size:.75rem;opacity:.6">Hackthon Hackers &mdash; Multi-Site Test Automation Framework v1.0</p>
+  </div>
+
+</div>
+</main>
+
+<script>
+// ── Sidebar toggle (mobile) ──
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+
+// ── Active link tracking ──
+const sidebarLinks = document.querySelectorAll('.sidebar a[href^="#"]');
+const sections = [];
+sidebarLinks.forEach(link => {
+  const id = link.getAttribute('href').slice(1);
+  const el = document.getElementById(id);
+  if (el) sections.push({ id, el, link });
+});
+
+function updateActive() {
+  const scrollY = window.scrollY + 120;
+  let current = sections[0];
+  for (const s of sections) {
+    if (s.el.offsetTop <= scrollY) current = s;
+  }
+  sidebarLinks.forEach(l => l.classList.remove('active'));
+  if (current) current.link.classList.add('active');
+}
+window.addEventListener('scroll', updateActive, { passive: true });
+updateActive();
+
+// close sidebar on link click (mobile)
+sidebarLinks.forEach(link => {
+  link.addEventListener('click', () => {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('open');
+  });
+});
+
+// ── Copy code ──
+function copyCode(btn) {
+  const code = btn.closest('pre').querySelector('code');
+  const text = code.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+  });
+}
+
+// ── Tabs ──
+function switchTab(e, panelId) {
+  const container = e.target.closest('section') || e.target.parentElement.parentElement;
+  container.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  container.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  e.target.classList.add('active');
+  container.querySelector('#' + panelId).classList.add('active');
+}
+
+// ── Search ──
+function handleSearch(query) {
+  const q = query.toLowerCase().trim();
+  const allSections = document.querySelectorAll('.content > section');
+  if (!q) {
+    allSections.forEach(s => s.style.display = '');
+    sidebarLinks.forEach(l => l.style.display = '');
+    return;
+  }
+  allSections.forEach(s => {
+    const text = s.textContent.toLowerCase();
+    s.style.display = text.includes(q) ? '' : 'none';
+  });
+  sidebarLinks.forEach(link => {
+    const href = link.getAttribute('href')?.slice(1);
+    const section = href && document.getElementById(href);
+    link.style.display = (section && section.style.display !== 'none') ? '' : 'none';
+  });
+}
+</script>
+</body>
+</html>
